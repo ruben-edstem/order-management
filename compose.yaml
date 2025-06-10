@@ -1,73 +1,75 @@
+version: '3.8'
+
 services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: mydatabase
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis-cache
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
 
   zookeeper:
     image: bitnami/zookeeper:3.9
     container_name: zookeeper
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
     ports:
       - "2181:2181"
-    environment:
-      ALLOW_ANONYMOUS_LOGIN: "yes"
     networks:
       - app-network
 
   kafka:
     image: bitnami/kafka:3.6
     container_name: kafka
-    ports:
-      - "9092:9092"
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092
-      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      ALLOW_PLAINTEXT_LISTENER: "yes"
     depends_on:
       - zookeeper
-    networks:
-      - app-network
-
-  postgres:
-    image: postgres:15
-    container_name: postgresql
-    restart: always
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin
-      POSTGRES_DB: finaldb
+      - KAFKA_BROKER_ID=1
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
     ports:
-      - "5432:5432"
+      - "9092:9092"
     networks:
       - app-network
-
-  redis:
-    image: redis:7
-    container_name: redis
-    restart: always
-    ports:
-      - "6379:6379"
-    networks:
-      - app-network
-    command: [ "redis-server", "--save", "", "--appendonly", "no" ]
 
   app:
     build: .
-    container_name: springboot-app
-    ports:
-      - "8080:8080"
+    container_name: order-management-app
     depends_on:
-      - kafka
       - postgres
       - redis
+      - kafka
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/mydatabase
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - SPRING_KAFKA_CONSUMER_GROUP_ID=order-management-group
+      - SPRING_PROFILES_ACTIVE=docker
+    ports:
+      - "8080:8080"
     networks:
       - app-network
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgresql:5432/finaldb
-      SPRING_DATASOURCE_USERNAME: admin
-      SPRING_DATASOURCE_PASSWORD: admin
-      SPRING_REDIS_HOST: redis
-      SPRING_REDIS_PORT: 6379
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
 
 networks:
   app-network:
     driver: bridge
+
+volumes:
+  postgres-data:
