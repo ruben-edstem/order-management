@@ -3,46 +3,25 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/mydatabase
-    username: myuser
-    password: secret
+    url: jdbc:postgresql://postgres:5432/finaldb
     driver-class-name: org.postgresql.Driver
+    username: admin
+    password: admin
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
 
-  devtools:
-    restart:
-      enabled: true
-    livereload:
-      enabled: true
+  data:
+    redis:
+      host: redis
+      port: 6379
 
-logging:
-    level:
-      com.ecommerce.ordermanagement: DEBUG
-      org.springframework: INFO
-      org.hibernate.SQL: DEBUG
-      org.hibernate.type.descriptor.sql.BasicBinder: TRACE
-
-    data:
-      redis:
-        host: localhost
-        port: 6379
-    cache:
-      time-to-live: 600000
-      cache-null-values: false
-
-    kafka:
-      bootstrap-servers: localhost:9092
-      consumer:
-        group-id: order-service
-        auto-offset-reset: earliest
-        key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-        value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-        properties:
-          spring.json.trusted.packages: "*"
-      producer:
-        key-serializer: org.apache.kafka.common.serialization.StringSerializer
-        value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+kafka:
+  topic:
+    name: message-topic
+    dlt-name: message-topic.DLT
