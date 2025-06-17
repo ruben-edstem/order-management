@@ -19,7 +19,7 @@ import java.util.List;
 public class Order {
 
     @Id
-    @GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name="customer_email", nullable = false)
@@ -27,6 +27,9 @@ public class Order {
 
     @Column(name="customer_name", nullable = false)
     private String customerName;
+
+    @Column(name="shipping_address", length = 500)
+    private String shippingAddress;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -46,7 +49,7 @@ public class Order {
     private LocalDateTime updatedAt;
 
     @PrePersist
-    protected  void onCreate() {
+    protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }
@@ -55,5 +58,4 @@ public class Order {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
-
 }

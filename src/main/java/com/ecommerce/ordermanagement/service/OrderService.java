@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -54,14 +55,22 @@ public class OrderService {
         return orderRepository.findAll();
     }
 
+    public Optional<Order> getOrderById(Long id) {
+        return orderRepository.findById(id);
+    }
+
     public Order updateOrderStatus(Long orderId, OrderStatus status) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
 
+        OrderStatus previousStatus = order.getStatus();
         order.setStatus(status);
         Order updatedOrder = orderRepository.save(order);
 
-        kafkaProducerService.sendOrderEvent(updatedOrder, "ORDER_UPDATED");
+        // Send appropriate event based on status
+        String eventType = status == OrderStatus.CANCELLED ? "ORDER_CANCELLED" : "ORDER_UPDATED";
+        kafkaProducerService.sendOrderEvent(updatedOrder, eventType);
+
         kafkaProducerService.sendNotification("EMAIL",
                 updatedOrder.getCustomerEmail(),
                 "Your order #" + orderId + " status updated to: " + status);
